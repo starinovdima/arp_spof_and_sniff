@@ -5,9 +5,9 @@ import subprocess
 import time
 
 from prettytable import PrettyTable
-from netifaces import ifaddresses, AF_INET
-from socket import socket,SOCK_DGRAM
+from socket import socket, AF_INET, SOCK_DGRAM
 import scapy.all as scapy
+
 
 def get_local_ip():
     st = socket(AF_INET, SOCK_DGRAM)
@@ -20,6 +20,7 @@ def get_local_ip():
         st.close()
     return ip_l
 
+
 def get_gateway_ip():
     com = 'route -n'.split()
     ip_route = str(subprocess.check_output(com, shell=True)).split("\\n")[2].split()[1].strip()
@@ -28,6 +29,7 @@ def get_gateway_ip():
     else:
         sock_ = sock.gethostbyname(ip_route)
         return sock_
+
 
 def output_mac_ip_table(mac_ip_list):
     th = ['IP Address', 'MAC Address']
@@ -49,34 +51,37 @@ def get_ip_mac_addr(ip):
         client_dict = [element[1].psrc, element[1].hwsrc]
         clients_list.append(client_dict)
     return clients_list
-def generate_ip(local_ip,prefix):
 
-    return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.1'+prefix
 
-#def update_ip_table():
- #   while True:
+def generate_ip(local_ip, prefix):
+    return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.1' + prefix
+
+
+# def update_ip_table():
+#   while True:
 
 def get_prefix(local_ip):
-    return '/'+os.popen(f"ip a | zgrep {local_ip}").read().split()[1].split("/")[1]
+    return '/' + os.popen(f"ip a | zgrep {local_ip}").read().split()[1].split("/")[1]
 
 
 def main():
     if not os.getuid() == 0:
-         print("\n----------- Please, run with SUDO ! -----------")
-         return
+        print("\n----------- Please, run with SUDO ! -----------")
+        return
     local_ip = get_local_ip()
     gateway_ip = get_gateway_ip()
     prefix = get_prefix(local_ip)
-    print(f"\n----------- Your local IP is  -->  {local_ip} ----------- ")
-    print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
-    some_list = get_ip_mac_addr(generate_ip(local_ip,prefix))
-    if not (len(some_list) == 0):
-        output_mac_ip_table(some_list)
-
-
+    while True:
+        print(f"\n----------- Your local IP is  -->  {local_ip} ----------- ")
+        print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
+        mac_ip_list = get_ip_mac_addr(generate_ip(local_ip, prefix))
+        if not (len(mac_ip_list) == 0):
+            output_mac_ip_table(mac_ip_list)
+        print("\n- Please select target ip or update table(enter 'up') -")
+        answer = input()
+        if not "up" in answer:
+            break
 
 
 if __name__ == '__main__':
     main()
-
-
