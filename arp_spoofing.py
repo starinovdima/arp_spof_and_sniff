@@ -24,7 +24,8 @@ def get_local_ip():
 
 def get_gateway_ip():
     com = 'route -n'.split()
-    ip_route = str(subprocess.check_output(com, shell=True)).split("\\n")[2].split()[1].strip()
+    #ip_route = str(subprocess.check_output(com, shell=True)).split("\\n")[2].split()[1].strip()
+    ip_route = os.popen("ip r | grep default").read().split()[2]
     if ip_route.isdigit():
         return ip_route
     else:
@@ -55,17 +56,22 @@ def get_ip_mac_addr(ip):
 
     for element in answered_list:
         client_dict = [element[1].psrc, element[1].hwsrc]
-        print(f"ip:{element[1].psrc} mac:{element[1].hwsrc}")
+        #print(f"ip:{element[1].psrc} mac:{element[1].hwsrc}")
         clients_list.append(client_dict)
     return clients_list
 
-
+def ipneigh_ip_mac():
+    list_ = os.popen("ip neigh").read().split("\n")
+    print(list_)
+    ip_mac = []
+    for i in range(len(list_)):
+        if not (list_[i] == ''):
+            ip_mac_list = [list_[i].split()[0], list_[i].split()[4]]
+            ip_mac.append(ip_mac_list)
+    return ip_mac
 def generate_ip(local_ip, prefix):
-    return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.' + str(prefix)
+    return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.0' + prefix
 
-
-# def update_ip_table():
-#   while True:
 
 def get_prefix(local_ip):
     prefix = 0
@@ -84,12 +90,18 @@ def main():
     local_ip = get_local_ip()
     gateway_ip = get_gateway_ip()
     prefix = get_prefix(local_ip)
-    #print(generate_ip(local_ip))
+
     while True:
         print(f"\n----------- Your local IP is  -->  {local_ip+prefix} ----------- ")
         print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
-        for i in (0,126):
-            mac_ip_list = get_ip_mac_addr(generate_ip(local_ip,126))
+        mac_ip_list = []
+        for i in range(1):
+            mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))
+            if(len(mac_ip_l) > len(mac_ip_list)):
+                mac_ip_list = mac_ip_l
+        neigh = ipneigh_ip_mac()
+        if(len(mac_ip_list) < len(neigh)):
+            mac_ip_list = neigh
         if not (len(mac_ip_list) == 0):
             output_mac_ip_table(mac_ip_list)
         print("\n- Please select target ip or update table(enter 'up') -")
