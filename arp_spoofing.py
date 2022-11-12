@@ -1,13 +1,10 @@
 import os
 import socket as sock
-import struct
-import subprocess
-import time
-import ipaddress
 
 from prettytable import PrettyTable
 from socket import socket, AF_INET, SOCK_DGRAM
 import scapy.all as scapy
+from scapy.layers.l2 import Ether, ARP
 
 
 def get_local_ip():
@@ -23,7 +20,7 @@ def get_local_ip():
 
 
 def get_gateway_ip():
-    com = 'route -n'.split()
+    #com = 'route -n'.split()
     #ip_route = str(subprocess.check_output(com, shell=True)).split("\\n")[2].split()[1].strip()
     ip_route = os.popen("ip r | grep default").read().split()[2]
     if ip_route.isdigit():
@@ -37,7 +34,7 @@ def get_gateway_ip():
 
 
 def output_mac_ip_table(mac_ip_list):
-    th = ['IP Address', 'MAC Address']
+    th = ['IP Address','Wifi module name', 'MAC Address']
     table = PrettyTable(th)
     columns = len(th)
     for row in mac_ip_list:
@@ -62,7 +59,6 @@ def get_ip_mac_addr(ip):
 
 def ipneigh_ip_mac():
     list_ = os.popen("ip neigh").read().split("\n")
-    print(list_)
     ip_mac = []
     for i in range(len(list_)):
         if not (list_[i] == ''):
@@ -72,6 +68,17 @@ def ipneigh_ip_mac():
 def generate_ip(local_ip, prefix):
     return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.0' + prefix
 
+def scapy_arp(ip):
+    ans_list = []
+    ans = scapy.arping(ip, timeout=3, cache=0, verbose=False)[0]
+
+    for s,r in ans.res:
+
+        manuf = scapy.conf.manufdb._get_short_manuf(r.src)
+        manuf = "unknown" if manuf == r.src else manuf
+        ans_list.append([ r[ARP].psrc, manuf, r[Ether].src])
+
+    return ans_list
 
 def get_prefix(local_ip):
     prefix = 0
@@ -80,9 +87,9 @@ def get_prefix(local_ip):
         prefix += str(bin(int(netmask[i]))).count("1")
     return '/' + str(prefix)
 def main():
-    #if not os.getuid() == 0:
-      #  print("\n----------- Please, run with SUDO ! -----------")
-      #  return
+    if not os.getuid() == 0:
+        print("\n----------- Please, run with SUDO ! -----------")
+        return
     print("----- Choose interface ( default: wlan0) ----- ")
     interface = input("---> ")
     if ( len(interface) == 0):
@@ -95,8 +102,11 @@ def main():
         print(f"\n----------- Your local IP is  -->  {local_ip+prefix} ----------- ")
         print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
         mac_ip_list = []
-        for i in range(1):
-            mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))
+        for i in range(5):
+            #mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))
+            mac_ip_l = scapy_arp(generate_ip(local_ip,prefix))
+            #print(a)
+            print(f"---- {i+1} operation ----")
             if(len(mac_ip_l) > len(mac_ip_list)):
                 mac_ip_list = mac_ip_l
         neigh = ipneigh_ip_mac()
@@ -104,6 +114,7 @@ def main():
             mac_ip_list = neigh
         if not (len(mac_ip_list) == 0):
             output_mac_ip_table(mac_ip_list)
+
         print("\n- Please select target ip or update table(enter 'up') -")
         answer = input("---> ")
         if not "up" in answer:
