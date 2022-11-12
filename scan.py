@@ -53,7 +53,7 @@ def get_ip_mac_addr(ip):
 
     for element in answered_list:
         client_dict = [element[1].psrc, element[1].hwsrc]
-        #print(f"ip:{element[1].psrc} mac:{element[1].hwsrc}")
+        print(f"ip:{element[1].psrc} mac:{element[1].hwsrc}")
         clients_list.append(client_dict)
     return clients_list
 
@@ -66,7 +66,7 @@ def ipneigh_ip_mac():
             ip_mac.append(ip_mac_list)
     return ip_mac
 def generate_ip(local_ip, prefix):
-    return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.0' + prefix
+    return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.0/' + prefix
 
 def scapy_arp(ip):
     ans_list = []
@@ -80,46 +80,68 @@ def scapy_arp(ip):
 
     return ans_list
 
+def get_accuracy(num,prefix):
+    norm_n = 20
+    count_by_prefix = (32 - prefix) / 10
+    accuracy = norm_n * num // count_by_prefix
+    return accuracy
+
+
 def get_prefix(local_ip):
     prefix = 0
     netmask = os.popen(f"ifconfig | grep {local_ip}").read().split()[3].split(".")
     for i in range(len(netmask)):
         prefix += str(bin(int(netmask[i]))).count("1")
-    return '/' + str(prefix)
-def main():
+    return str(prefix)
+def scan_network():
+
     if not os.getuid() == 0:
         print("\n----------- Please, run with SUDO ! -----------")
         return
-    print("----- Choose interface ( default: wlan0) ----- ")
-    interface = input("---> ")
-    if ( len(interface) == 0):
-        interface = "wlan0"
-    local_ip = get_local_ip()
-    gateway_ip = get_gateway_ip()
-    prefix = get_prefix(local_ip)
 
-    while True:
-        print(f"\n----------- Your local IP is  -->  {local_ip+prefix} ----------- ")
-        print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
-        mac_ip_list = []
-        for i in range(5):
-            #mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))
-            mac_ip_l = scapy_arp(generate_ip(local_ip,prefix))
-            #print(a)
-            print(f"---- {i+1} operation ----")
-            if(len(mac_ip_l) > len(mac_ip_list)):
-                mac_ip_list = mac_ip_l
-        neigh = ipneigh_ip_mac()
-        if(len(mac_ip_list) < len(neigh)):
-            mac_ip_list = neigh
-        if not (len(mac_ip_list) == 0):
-            output_mac_ip_table(mac_ip_list)
+    try:
+        print("----- Choose interface ( default: wlan0) ----- ")
+        interface = input("---> ")
+        if ( len(interface) == 0):
+            interface = "wlan0"
 
-        print("\n- Please select target ip or update table(enter 'up') -")
-        answer = input("---> ")
-        if not "up" in answer:
-            break
+        local_ip = get_local_ip()
+        gateway_ip = get_gateway_ip()
+        prefix = get_prefix(local_ip)
 
+        print("----- Enter search accuracy ( 0 < default 0.5 < 1) -----")
+        accuracy = input("---> ")
+        if (len(accuracy) == 0):
+            accuracy = "0.5"
+        accuracy = get_accuracy(float(accuracy),int(prefix))
+
+
+
+        while True:
+            print(f"\n----------- Your local IP is  -->  {local_ip}/{prefix} ----------- ")
+            print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
+            mac_ip_list = []
+            for i in range(int(accuracy)):
+                #mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))  #1 way
+                mac_ip_l = scapy_arp(generate_ip(local_ip,prefix))         #2 way
+                print(f"---- {i+1} operation ----")
+                if(len(mac_ip_l) > len(mac_ip_list)):
+                    mac_ip_list = mac_ip_l
+            neigh = ipneigh_ip_mac()
+            if(len(mac_ip_list) < len(neigh)):
+                mac_ip_list = neigh
+            if not (len(mac_ip_list) == 0):
+                output_mac_ip_table(mac_ip_list)
+
+            print("\n- Do you want to continue or update table(enter 'up') -")
+            answer = input("---> ")
+            if not "up" in answer:
+                break
+
+    except BaseException:
+        print("Oooops, something wrong...... ")
 
 if __name__ == '__main__':
-    main()
+    scan_network()
+
+
