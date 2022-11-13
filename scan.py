@@ -4,8 +4,13 @@ import socket as sock
 from prettytable import PrettyTable
 from socket import socket, AF_INET, SOCK_DGRAM
 import scapy.all as scapy
+import getmac.getmac as getmac
 from scapy.layers.l2 import Ether, ARP
 
+
+local_ip = ''
+gateway_ip = ''
+mac_ip_list = []
 
 def get_local_ip():
     st = socket(AF_INET, SOCK_DGRAM)
@@ -65,6 +70,7 @@ def ipneigh_ip_mac():
             ip_mac_list = [list_[i].split()[0], list_[i].split()[4]]
             ip_mac.append(ip_mac_list)
     return ip_mac
+
 def generate_ip(local_ip, prefix):
     return f'{local_ip.split(".")[0]}.{local_ip.split(".")[1]}.{local_ip.split(".")[2]}.0/' + prefix
 
@@ -76,7 +82,7 @@ def scapy_arp(ip):
 
         manuf = scapy.conf.manufdb._get_short_manuf(r.src)
         manuf = "unknown" if manuf == r.src else manuf
-        ans_list.append([ r[ARP].psrc, manuf, r[Ether].src])
+        ans_list.append((r[ARP].psrc, manuf, r[Ether].src))
 
     return ans_list
 
@@ -93,6 +99,7 @@ def get_prefix(local_ip):
     for i in range(len(netmask)):
         prefix += str(bin(int(netmask[i]))).count("1")
     return str(prefix)
+
 def scan_network():
 
     if not os.getuid() == 0:
@@ -120,7 +127,7 @@ def scan_network():
         while True:
             print(f"\n----------- Your local IP is  -->  {local_ip}/{prefix} ----------- ")
             print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
-            mac_ip_list = []
+
             for i in range(int(accuracy)):
                 #mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))  #1 way
                 mac_ip_l = scapy_arp(generate_ip(local_ip,prefix))         #2 way
