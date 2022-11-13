@@ -1,7 +1,7 @@
 import os
 import time
 
-from scan import local_ip, gateway_ip, mac_ip_list
+from scan import gateway_ip, mac_ip_list
 import scapy.all as scapy
 
 
@@ -49,7 +49,6 @@ def arp_spoof():
     packet_count = 0
 
     try:
-
 
         while True:
             arp_spoof(target_ip_mac, spoof_ip_mac)

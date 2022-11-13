@@ -148,7 +148,6 @@ def scan_network():
     except BaseException:
         print("Oooops, something wrong...... ")
 
-if __name__ == '__main__':
-    scan_network()
+
 
 
